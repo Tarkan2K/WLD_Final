@@ -1,0 +1,24 @@
+# Binaries
+bin/
+*.o
+*.out
+
+# Data & Logs
+data/
+logs/
+*.log
+*.bin
+*.db
+*.tmp
+*.json
+
+# Python
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# System
+.DS_Store
