@@ -2,15 +2,26 @@
 
 **System Name**: Cortex Gen 3 / WLD Market Data Recorder
 **Target Asset**: WLD/USDT (Bybit Linear Perpetual)
-**Version**: Gen 3 (Development/Recording Phase)
+**Version**: Gen 3.1 (Dual-Mode: Recorder & Visualizer)
 
 ---
 
 ## 1. System Overview
 
-This project consists of two distinct subsystems:
-1.  **Market Data Recorder**: A high-performance C++ recorder that ingests real-time Bybit WebSocket data and persists it to binary files for analysis/backtesting.
-2.  **HFT Strategy Engine (Cortex Gen 3)**: A low-latency trading engine (headers only, currently dormant) designed to execute the "Sniper" and "Trap Hunter" strategies.
+This project has been overhauled into a professional **Dual-Mode System** capable of both high-fidelity data recording and real-time market visualization.
+
+### Modes of Operation
+1.  **Headless Recorder (AWS Mode)**:
+    -   Optimized for server environments.
+    -   Captures **Trades**, **Orderbook (Depth 50)**, **Liquidations**, and **Tickers**.
+    -   Writes to binary files with automatic rotation every 60 minutes.
+    -   No console output (silent operation).
+
+2.  **Visualizer (Local Mode)**:
+    -   Real-time **Inverse Liquidation Heatmap**.
+    -   Displays live telemetry (Price, OI, Funding Rate).
+    -   Visualizes estimated vs. real liquidation zones.
+    -   **No disk writes** (Protects local SSD).
 
 ### Directory Structure
 
@@ -20,9 +31,15 @@ WLD_FINAL/
 ├── data/
 │   └── history/          # Recorded binary market data (*.bin)
 ├── logs/                 # System logs
-├── src_cpp/              # C++ Source Code (Recorder + Strategy Engine)
-├── src_py/               # Python Source Code (Feed + Execution Gateway)
-├── run_recorder.sh       # Startup script for the recorder
+├── src_cpp/              # C++ Source Code
+│   ├── recorder.cpp      # Core Event Loop & Mode Logic
+│   ├── LiquidationEngine.hpp # Visualization Logic
+│   ├── protocol.h        # Binary Protocol Definitions
+│   └── ...
+├── src_py/               # Python Source Code
+│   ├── bybit_feed.py     # WebSocket Feed (Trades, Depth, Liq, Ticker)
+│   └── ...
+├── run_recorder.sh       # Unified startup script
 └── Makefile              # Build configuration
 ```
 
@@ -30,43 +47,26 @@ WLD_FINAL/
 
 ## 2. Components Detail
 
-### A. Data Recorder (Active)
-**Source**: `src_cpp/recorder.cpp`, `src_py/bybit_feed.py`
-**Architecture**: Python Feed -> Pipe (`|`) -> C++ Recorder
+### A. Data Feed (`src_py/bybit_feed.py`)
+-   **Source**: Bybit V5 Public WebSocket.
+-   **Channels**:
+    -   `publicTrade.WLDUSDT`
+    -   `orderbook.50.WLDUSDT` (Top 50 Levels)
+    -   `liquidation.WLDUSDT` (Real liquidation events)
+    -   `tickers.WLDUSDT` (Open Interest, Funding, Mark Price)
+-   **Output**: Pipe-delimited stream to STDOUT.
 
-1.  **Feed (`src_py/bybit_feed.py`)**:
-    -   Connects to Bybit V5 Public WebSocket.
-    -   Subscribes to `publicTrade.WLDUSDT`.
-    -   Normalizes data and prints to STDOUT in a pipe-delimited format:
-        `TRADE|timestamp|symbol|side|price|qty`
+### B. Core Engine (`src_cpp/recorder.cpp`)
+-   **Dual-Mode Logic**: Parses command line arguments to switch between Recording and Visualization.
+-   **Ring Buffer**: Lock-free buffering for high-throughput ingestion.
+-   **File Writer**: Handles binary recording with hourly rotation (Headless Mode only).
 
-2.  **Recorder (`src_cpp/recorder.cpp`)**:
-    -   Reads STDIN from the Python feed.
-    -   Parses `TRADE` and `DEPTH` messages.
-    -   Push messages to a **Lock-Free Ring Buffer** (64KB).
-    -   **Writer Thread**: Pops from buffer and appends to binary files in `data/history/`.
-    -   **Format**: Custom binary protocol defined in `src_cpp/protocol.h`.
-
-### B. Cortex Gen 3 Strategy Engine (In Development)
-**Source**: `src_cpp/LiveEngine.hpp`, `src_cpp/MarketMakerGen2.hpp`
-**Status**: Implemented in headers but not linked in the current `Makefile` target.
-
--   **Classes**:
-    -   `LiveEngine`: Main loop, manages `sqlite3` database for trade logging, prints specific dashboard.
-    -   `MarketMakerGen2`: Implements "Sniper" strategy (Zero-Alloc, C++20).
-    -   `OrderBookL3`: Internal order book representation.
-    -   `SignalEngine`: Signal processing (Velocity, VPIN, Trap detection).
--   **Strategy Logic**:
-    -   **Micro-Price** calculation.
-    -   **Inventory Skew**: Adjusts quotes based on current position and risk aversion.
-    -   **Trap Detection**: Identifies Bull/Bear traps to shift quotes aggressively.
-
-### C. Nerve Gateway (Legacy/Standby)
-**Source**: `src_py/brain_legacy.py`
-**Purpose**: Execution gateway for the strategy.
--   Listens to STDIN for `SIGNAL` messages from the C++ engine.
--   Executes orders on Bybit using `pybit`.
--   Manages Position Guard, Risk checks, and dynamic TP/SL adjustments.
+### C. Visualization Engine (`src_cpp/LiquidationEngine.hpp`)
+-   **Inverse Liquidation Logic**: Estimates liquidation levels based on Taker flow.
+    -   *Taker Buy* -> Potential Long Liquidation (Price - 4%).
+    -   *Taker Sell* -> Potential Short Liquidation (Price + 4%).
+-   **Real Liquidation Confirmation**: Flashes/Boosts zones when real liquidation events occur.
+-   **Dashboard**: Renders a color-coded text UI with telemetry.
 
 ---
 
@@ -75,49 +75,67 @@ WLD_FINAL/
 ### Prerequisites
 -   Linux Environment
 -   `g++` (supporting C++17)
--   Python 3 with `websocket-client` and `pybit`
--   `sqlite3` (for Strategy Engine)
+-   Python 3 with `websocket-client`
 
 ### Build
-To compile the C++ recorder:
 ```bash
 cd src_cpp
 make
 # Output: ../bin/recorder
 ```
 
-### Run Recorder
-To start recording market data:
+### Run
+The system is controlled via `run_recorder.sh` with flags:
+
+**1. AWS / Server Mode (Recording Only)**
 ```bash
-./run_recorder.sh
+./run_recorder.sh --headless
 ```
-*Note: This starts the Python feed and pipes it to the recorder binary.*
+*   Silent operation.
+*   Writes to `data/history/market_data_YYYYMMDD_HHMMSS.bin`.
+*   Rotates files every hour.
+
+**2. Local / Visual Mode (Dashboard Only)**
+```bash
+./run_recorder.sh --visual-only
+```
+*   Displays **Inverse Liquidation Heatmap**.
+*   Shows Real-Time Ticker Info (OI, Funding).
+*   **Does NOT write to disk.**
 
 ---
 
 ## 4. Data Formats
 
 ### Binary Protocol (`protocol.h`)
-The recorder saves data in a packed binary format:
+The recorder saves data in a packed binary format.
+
+**Header**:
 ```cpp
 struct MarketMsg {
-  uint8_t type;      // 0x01 = TRADE, 0x03 = DEPTH
+  uint8_t type;      // 0x01=TRADE, 0x03=DEPTH, 0x04=LIQ, 0x05=TICKER
   uint8_t symbol_id; // 0 = WLDUSDT
   union {
     TradePayload trade;
     SnapshotPayload snapshot;
+    LiquidationPayload liq;
+    TickerPayload ticker;
   } payload;
 };
 ```
 
-### CSV/Pipe Protocol
-Used for Inter-Process Communication (Python -> C++):
--   **Trade**: `TRADE|timestamp_ms|WLDUSDT|SIDE|price|qty`
--   **Depth**: `DEPTH|timestamp_ms|WLDUSDT|bids_str|asks_str`
+**Payloads**:
+-   **Trade**: `ts`, `price`, `qty`, `is_buyer_maker`
+-   **Snapshot**: `ts`, `bid_px[50]`, `bid_qty[50]`, `ask_px[50]`, `ask_qty[50]`
+-   **Liquidation**: `ts`, `price`, `qty`, `side` ('B'/'S')
+-   **Ticker**: `ts`, `open_interest`, `funding_rate`, `mark_price`
+
+### Pipe Protocol (IPC)
+Format: `TYPE|timestamp|symbol|...`
+
+-   **TRADE**: `TRADE|ts|WLDUSDT|SIDE|px|qty`
+-   **DEPTH**: `DEPTH|ts|WLDUSDT|bid1:q1,bid2:q2...|ask1:q1,ask2:q2...`
+-   **LIQ**: `LIQ|ts|WLDUSDT|SIDE|px|qty`
+-   **TICKER**: `TICKER|ts|WLDUSDT|oi|funding|mark_price`
 
 ---
-
-## 5. Deployment Notes
--   **Secrets**: API Keys are loaded from Environment Variables (`.env`) in `brain_legacy.py` and `run_recorder.sh` (if customized). The Recorder itself does not require API keys.
--   **Database**: The Strategy Engine writes to `hft_live.db` (SQLite) when active.
-
