@@ -1,5 +1,0 @@
-{
-  "name": "velox-lob-engine — C++20 Low-Latency LOB & Telemetry Engine",
-  "description": "Institutional-grade C++20 Limit Order Book, Lock-Free SPSC RingBuffer, 128-bit Micro-Price Telemetry, and Asyncio WebSocket Ingestion Engine.",
-  "requestFramePermissions": []
-}

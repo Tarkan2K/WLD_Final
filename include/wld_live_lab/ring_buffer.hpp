@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace velox {
+namespace wld_live_lab {
 
 template <typename T, size_t Capacity>
 class RingBuffer {

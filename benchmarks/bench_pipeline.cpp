@@ -1,8 +1,8 @@
-#include "velox/order_book.hpp"
-#include "velox/protocol.hpp"
-#include "velox/ring_buffer.hpp"
-#include "velox/strategy_interface.hpp"
-#include "velox/telemetry.hpp"
+#include "wld_live_lab/order_book.hpp"
+#include "wld_live_lab/protocol.hpp"
+#include "wld_live_lab/ring_buffer.hpp"
+#include "wld_live_lab/strategy_interface.hpp"
+#include "wld_live_lab/telemetry.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -10,7 +10,7 @@
 #include <iostream>
 
 int main() {
-    using namespace velox;
+    using namespace wld_live_lab;
 
     constexpr size_t NUM_EVENTS    = 1'000'000;
     constexpr size_t RING_CAPACITY = 65'536;
@@ -69,7 +69,7 @@ int main() {
     const double ns_per_op   = elapsed_ns / static_cast<double>(NUM_EVENTS);
 
     std::cout << "==============================================================\n"
-              << "  VELOX LOB ENGINE | PIPELINE BENCHMARK (1,000,000 EVENTS)\n"
+              << "  WLD LIVE LAB | PIPELINE BENCHMARK (1,000,000 EVENTS)\n"
               << "==============================================================\n"
               << std::fixed << std::setprecision(2)
               << " Events Processed  : " << NUM_EVENTS << "\n"

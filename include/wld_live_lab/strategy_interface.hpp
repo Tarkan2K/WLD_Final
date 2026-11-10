@@ -1,10 +1,10 @@
 #pragma once
 
-#include "velox/order_book.hpp"
-#include "velox/telemetry.hpp"
+#include "wld_live_lab/order_book.hpp"
+#include "wld_live_lab/telemetry.hpp"
 #include <cstdint>
 
-namespace velox {
+namespace wld_live_lab {
 
 struct QuoteDecision {
     int64_t bid_px{0};

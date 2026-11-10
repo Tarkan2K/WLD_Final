@@ -1,12 +1,12 @@
 #pragma once
 
-#include "velox/order_book.hpp"
+#include "wld_live_lab/order_book.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 
-namespace velox {
+namespace wld_live_lab {
 
 class TelemetryEngine {
 public:

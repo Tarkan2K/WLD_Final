@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace velox {
+namespace wld_live_lab {
 
 inline constexpr int64_t PRICE_SCALE = 100'000'000LL;
 

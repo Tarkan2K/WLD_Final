@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace velox {
+namespace wld_live_lab {
 
 class FileWriter {
 public:
@@ -28,7 +28,7 @@ private:
 public:
     explicit FileWriter(
         std::string output_dir = "data/history",
-        std::string file_prefix = "market_data")
+        std::string file_prefix = "wld_live_lab")
         : buffer_(WRITE_BUFFER_SIZE),
           output_dir_(std::move(output_dir)),
           file_prefix_(std::move(file_prefix)) {}

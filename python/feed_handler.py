@@ -167,7 +167,7 @@ class BybitFeedHandler:
             except Exception as exc:
                 if self._stop_event.is_set():
                     break
-                sys.stderr.write(f"[velox-feed] Connection lost ({exc}), retrying in {backoff_sec:.1f}s\n")
+                sys.stderr.write(f"[wld_live_lab-feed] Connection lost ({exc}), retrying in {backoff_sec:.1f}s\n")
                 await asyncio.sleep(backoff_sec)
                 backoff_sec = min(max_backoff_sec, backoff_sec * 2.0)
 
