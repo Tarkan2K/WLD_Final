@@ -1,25 +1,18 @@
-# Build artifacts
 build/
 bin/
 *.o
 *.out
 *.a
 *.so
-
-# Market data & logs
 data/
 logs/
 *.bin
 *.log
 *.tmp
-
-# Python cache & virtual environments
 __pycache__/
 *.py[cod]
 .venv/
 venv/
-
-# IDE & OS metadata
 .vscode/
 .idea/
 .DS_Store

@@ -8,17 +8,10 @@
 
 namespace velox {
 
-/**
- * @brief Rolling window microstructure telemetry engine.
- *
- * Maintains O(1) running volume accumulators over a fixed-capacity circular
- * trade buffer (`WINDOW_SIZE = 1000`) to compute signed order flow toxicity
- * (VPIN proxy), trade arrival velocity (trades/sec), and feed staleness.
- */
 class TelemetryEngine {
 public:
     static constexpr size_t  WINDOW_SIZE    = 1000;
-    static constexpr int64_t MAX_LATENCY_NS = 500'000'000LL; ///< 500ms circuit breaker threshold
+    static constexpr int64_t MAX_LATENCY_NS = 500'000'000LL;
 
 private:
     struct TradeRecord {
@@ -39,9 +32,6 @@ private:
 public:
     TelemetryEngine() = default;
 
-    /**
-     * @brief Ingests a normalized market event and updates O(1) rolling accumulators.
-     */
     void add_event(const MarketUpdate& mu) noexcept {
         current_latency_ns_ = mu.timestamp_local - mu.timestamp_exchange;
         is_stale_ = (current_latency_ns_ > MAX_LATENCY_NS);
@@ -71,19 +61,10 @@ public:
         head_ = (head_ + 1) % WINDOW_SIZE;
     }
 
-    /**
-     * @brief Returns true if packet transit latency exceeds `MAX_LATENCY_NS`.
-     */
     [[nodiscard]] bool is_stale() const noexcept { return is_stale_; }
 
-    /**
-     * @brief Returns latest measured transit latency in nanoseconds.
-     */
     [[nodiscard]] int64_t get_latency_ns() const noexcept { return current_latency_ns_; }
 
-    /**
-     * @brief Computes rolling trade arrival velocity in trades per second.
-     */
     [[nodiscard]] double get_trade_velocity() const noexcept {
         if (count_ < 2) {
             return 0.0;
@@ -100,12 +81,6 @@ public:
         return static_cast<double>(count_) / (static_cast<double>(duration_ns) * 1e-9);
     }
 
-    /**
-     * @brief Computes signed order flow toxicity (VPIN proxy) scaled to [-1e8, +1e8].
-     *
-     * Formula:
-     *   VPIN = ((BuyVol - SellVol) * PRICE_SCALE) / (BuyVol + SellVol)
-     */
     [[nodiscard]] int64_t get_vpin() const noexcept {
         const int64_t total = running_buy_vol_ + running_sell_vol_;
         if (total <= 0) {
@@ -122,4 +97,4 @@ public:
     }
 };
 
-} // namespace velox
+}

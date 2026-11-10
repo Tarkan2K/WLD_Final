@@ -1,13 +1,8 @@
-# Dependencies
 node_modules/
 dist/
-
-# Binaries
 bin/
 *.o
 *.out
-
-# Data & Logs
 data/
 logs/
 *.log
@@ -16,15 +11,9 @@ logs/
 *.tmp
 book_snapshot.json
 dashboard.json
-
-# Python
 __pycache__/
 *.pyc
-
-# Playwright
 .playwright-cli/
-
-# IDEs & System
 .vscode/
 .idea/
 .DS_Store

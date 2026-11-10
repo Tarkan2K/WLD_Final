@@ -19,7 +19,7 @@
 
 namespace {
 
-constexpr size_t RING_BUFFER_CAPACITY = 262'144; // 2^18 slots
+constexpr size_t RING_BUFFER_CAPACITY = 262'144;
 
 velox::RingBuffer<velox::MarketMsg, RING_BUFFER_CAPACITY> g_ring_buffer;
 std::atomic<bool> g_running{true};
@@ -28,9 +28,6 @@ void signal_handler(int) noexcept {
     g_running.store(false, std::memory_order_release);
 }
 
-/**
- * @brief Extracts the next pipe-delimited token from `sv` in O(N) with zero allocations.
- */
 [[nodiscard]] inline std::string_view next_token(std::string_view& sv, char delimiter = '|') noexcept {
     const size_t pos = sv.find(delimiter);
     if (pos == std::string_view::npos) {
@@ -43,21 +40,12 @@ void signal_handler(int) noexcept {
     return token;
 }
 
-/**
- * @brief Parses a 64-bit integer from a `std::string_view` using `std::from_chars`.
- */
 [[nodiscard]] inline int64_t parse_int64(std::string_view sv) noexcept {
     int64_t val = 0;
     std::from_chars(sv.data(), sv.data() + sv.size(), val);
     return val;
 }
 
-/**
- * @brief Parses a decimal string into fixed-point E8 (`10^8`) using pure integer arithmetic.
- *
- * Performs zero heap allocations and zero floating-point conversions.
- * Fractional digits are padded or truncated to exactly 8 decimal places.
- */
 [[nodiscard]] int64_t parse_fixed_e8(std::string_view sv) noexcept {
     if (sv.empty()) {
         return 0;
@@ -94,9 +82,6 @@ void signal_handler(int) noexcept {
     return negative ? -scaled : scaled;
 }
 
-/**
- * @brief Parses comma-separated `price:qty` pairs into fixed-size E8 arrays.
- */
 void parse_depth_side(std::string_view side_sv, int64_t* px_arr, int64_t* qty_arr) noexcept {
     int idx = 0;
     while (!side_sv.empty() && idx < velox::SNAPSHOT_DEPTH) {
@@ -225,7 +210,7 @@ void consumer_thread_loop(bool headless_mode, bool visual_mode) {
     }
 }
 
-} // namespace
+}
 
 int main(int argc, char* argv[]) {
     bool headless_mode = false;

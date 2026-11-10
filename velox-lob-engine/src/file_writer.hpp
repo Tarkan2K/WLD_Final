@@ -13,15 +13,9 @@
 
 namespace velox {
 
-/**
- * @brief RAII buffered binary writer with automatic hourly file rotation.
- *
- * Uses a contiguous `std::vector<char>` 1 MiB staging buffer to batch small
- * packed market records into page-aligned sequential disk writes.
- */
 class FileWriter {
 public:
-    static constexpr size_t WRITE_BUFFER_SIZE = 1024 * 1024; ///< 1 MiB write buffer
+    static constexpr size_t WRITE_BUFFER_SIZE = 1024 * 1024;
 
 private:
     std::ofstream                       file_;
@@ -121,4 +115,4 @@ public:
     }
 };
 
-} // namespace velox
+}

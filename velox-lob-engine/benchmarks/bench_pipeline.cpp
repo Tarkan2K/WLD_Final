@@ -20,8 +20,7 @@ int main() {
     TelemetryEngine                         telemetry;
     AvellanedaStoikovDemo                   strategy;
 
-    // Seed initial 20 levels per side so book operations exercise realistic depth
-    constexpr int64_t base_px = 215'400'000LL; // 2.1540 USDT
+    constexpr int64_t base_px = 215'400'000LL;
     for (int i = 1; i <= 20; ++i) {
         book.update_level('B', base_px - (i * 10'000LL), (100 + i * 5) * PRICE_SCALE);
         book.update_level('A', base_px + (i * 10'000LL), (100 + i * 5) * PRICE_SCALE);
@@ -36,7 +35,7 @@ int main() {
 
         MarketUpdate ev{};
         ev.timestamp_exchange = static_cast<int64_t>(i * 1'000);
-        ev.timestamp_local    = ev.timestamp_exchange + 12'000; // 12 us transit
+        ev.timestamp_local    = ev.timestamp_exchange + 12'000;
         ev.order_id           = static_cast<int64_t>(i);
         ev.price              = is_bid ? (base_px - offset_ticks - 10'000LL)
                                        : (base_px + offset_ticks + 10'000LL);

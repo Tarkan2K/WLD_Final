@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""
-Asynchronous Bybit V5 Linear WebSocket ingestion gateway.
-
-Maintains local L2 order book depth (Top 50) and persistent ticker state cache
-to prevent partial delta zero-flicker, emitting pipe-delimited frames to STDOUT.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +9,7 @@ from typing import Any, Dict, List, Tuple
 try:
     import websockets
 except ImportError:
-    websockets = None  # type: ignore[assignment]
+    websockets = None
 
 BYBIT_Linear_WSS: str = "wss://stream.bybit.com/v5/public/linear"
 DEFAULT_SYMBOL: str = "WLDUSDT"
@@ -25,8 +17,6 @@ DEPTH_LIMIT: int = 50
 
 
 class BybitFeedHandler:
-    """Stateful WebSocket feed normalizer for Bybit V5 linear perpetuals."""
-
     def __init__(self, symbol: str = DEFAULT_SYMBOL) -> None:
         self.symbol: str = symbol
         self.bids: Dict[str, str] = {}
@@ -39,11 +29,9 @@ class BybitFeedHandler:
         self._stop_event: asyncio.Event = asyncio.Event()
 
     def request_stop(self) -> None:
-        """Signals the ingestion loop to terminate cleanly."""
         self._stop_event.set()
 
     def handle_message(self, raw_msg: str) -> None:
-        """Parses a raw JSON frame and writes normalized pipe records to STDOUT."""
         try:
             payload: Dict[str, Any] = json.loads(raw_msg)
         except json.JSONDecodeError:
@@ -139,7 +127,6 @@ class BybitFeedHandler:
         sys.stdout.flush()
 
     async def run(self) -> None:
-        """Connects to Bybit V5 with exponential backoff and processes frames."""
         if websockets is None:
             sys.stderr.write("Error: 'websockets' package is required (pip install websockets)\n")
             sys.exit(1)

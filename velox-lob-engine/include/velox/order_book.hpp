@@ -9,44 +9,25 @@
 
 namespace velox {
 
-/**
- * @brief Cache-line aligned normalized market event (64 bytes).
- *
- * Fits inside a single L1d cache line to prevent split loads and false sharing
- * when passed across thread boundaries.
- */
 struct alignas(64) MarketUpdate {
-    int64_t timestamp_exchange;  ///< Matching engine timestamp (ns)
-    int64_t timestamp_local;     ///< Local ingress timestamp (ns)
-    int64_t order_id;            ///< Order identifier (L3) or sequence ID
-    int64_t price;               ///< Fixed-point price (E8)
-    int64_t size;                ///< Fixed-point quantity (E8)
-    char    side;                ///< 'B' (Bid) or 'A' (Ask)
-    char    type;                ///< 'A' (Add/Update), 'C' (Cancel), 'T' (Trade)
-    char    padding[22];         ///< Explicit padding to 64-byte boundary
+    int64_t timestamp_exchange;
+    int64_t timestamp_local;
+    int64_t order_id;
+    int64_t price;
+    int64_t size;
+    char    side;
+    char    type;
+    char    padding[22];
 };
 
 static_assert(sizeof(MarketUpdate) == 64,
               "MarketUpdate must occupy exactly one 64-byte cache line");
 
-/**
- * @brief Price-level aggregate entry for contiguous L2 order book storage.
- */
 struct PriceLevel {
-    int64_t price{0};  ///< Fixed-point price (E8)
-    int64_t size{0};   ///< Aggregate quantity at price level (E8)
+    int64_t price{0};
+    int64_t size{0};
 };
 
-/**
- * @brief Contiguous, zero-allocation L2/L3 Order Book with 128-bit microstructure math.
- *
- * Algorithmic Complexity & Memory Layout:
- * - Price levels are stored in flat `std::vector<PriceLevel>` containers
- *   pre-allocated at startup (`MAX_BOOK_DEPTH`), guaranteeing L1/L2 hardware
- *   prefetcher friendliness over pointer-chasing `std::map` trees.
- * - `bids_` is maintained in strictly descending price order (`bids_[0]` = Best Bid).
- * - `asks_` is maintained in strictly ascending price order (`asks_[0]` = Best Ask).
- */
 class OrderBook {
 public:
     static constexpr size_t MAX_BOOK_DEPTH = 64;
@@ -74,13 +55,6 @@ public:
         return static_cast<double>(val) / static_cast<double>(PRICE_SCALE);
     }
 
-    /**
-     * @brief Inserts, updates in-place, or erases a price level while preserving sort order.
-     *
-     * @param side     'B' for Bid, 'A' for Ask.
-     * @param price_e8 Price scaled by 1e8.
-     * @param size_e8  Aggregate quantity scaled by 1e8 (0 removes the level).
-     */
     void update_level(char side, int64_t price_e8, int64_t size_e8) noexcept {
         if (side == 'B') {
             auto it = std::lower_bound(
@@ -123,9 +97,6 @@ public:
         }
     }
 
-    /**
-     * @brief Bulk-loads a pre-sorted snapshot payload in O(N) without reallocations.
-     */
     void load_snapshot(const SnapshotPayload& snap) noexcept {
         bids_.clear();
         asks_.clear();
@@ -139,14 +110,6 @@ public:
         }
     }
 
-    /**
-     * @brief Computes L1 volume-weighted Micro-Price using 128-bit intermediate arithmetic.
-     *
-     * Formula:
-     *   MicroPrice = (BestBidPx * BestAskQty + BestAskPx * BestBidQty) / (BestBidQty + BestAskQty)
-     *
-     * @return Fixed-point Micro-Price (E8), or 0 if either side of the book is empty.
-     */
     [[nodiscard]] int64_t get_micro_price() const noexcept {
         if (bids_.empty() || asks_.empty()) {
             return 0;
@@ -169,12 +132,6 @@ public:
         return static_cast<int64_t>(num / static_cast<unsigned __int128>(total_vol));
     }
 
-    /**
-     * @brief Computes Top-5 level Order Book Imbalance (OBI) scaled to [-1e8, +1e8].
-     *
-     * Formula:
-     *   OBI = ((SumBidVol_5 - SumAskVol_5) * PRICE_SCALE) / (SumBidVol_5 + SumAskVol_5)
-     */
     [[nodiscard]] int64_t get_imbalance() const noexcept {
         if (bids_.empty() || asks_.empty()) {
             return 0;
@@ -211,4 +168,4 @@ public:
     [[nodiscard]] const std::vector<PriceLevel>& asks() const noexcept { return asks_; }
 };
 
-} // namespace velox
+}
