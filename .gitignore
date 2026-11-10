@@ -1,3 +1,7 @@
+# Dependencies
+node_modules/
+dist/
+
 # Binaries
 bin/
 *.o
@@ -10,15 +14,17 @@ logs/
 *.bin
 *.db
 *.tmp
-*.json
+book_snapshot.json
+dashboard.json
 
 # Python
 __pycache__/
 *.pyc
 
-# IDEs
+# Playwright
+.playwright-cli/
+
+# IDEs & System
 .vscode/
 .idea/
-
-# System
 .DS_Store
